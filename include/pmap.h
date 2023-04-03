@@ -72,6 +72,8 @@ struct Page *page_lookup(Pde *pgdir, u_long va, Pte **ppte);
 void page_remove(Pde *pgdir, u_int asid, u_long va);
 void tlb_invalidate(u_int asid, u_long va);
 
+u_int page_perm_stat(Pde *pgdir, struct Page *p, u_int perm_mask);
+
 extern struct Page *pages;
 
 void physical_memory_manage_check(void);
