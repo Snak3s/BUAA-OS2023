@@ -75,8 +75,3 @@ void envid2env_check(void);
 	})
 
 #endif // !_ENV_H_
-
-// for lab 4-1 extra
-
-#define IPC_BROADCAST 0x10000000
-#define IPC_PAGE_SENT 0x20000000
