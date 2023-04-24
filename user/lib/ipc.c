@@ -58,12 +58,16 @@ void ipc_broadcast(u_int val, void *srcva, u_int perm) {
 	while (cnt) {
 		cnt = 0;
 		for (int i = 0; i < NENV; i++) {
-			if (envs[i].env_status != ENV_FREE &&
+			if (envs[i].env_status != ENV_FREE && !sent[i] &&
 			    sent[ENVX(envs[i].env_parent_id)] == envs[i].env_parent_id) {
 				cnt++;
 				sent[ENVX(envs[i].env_id)] = envs[i].env_id;
-				ipc_send(envs[i].env_id, val, srcva, perm | IPC_BROADCAST);
 			}
+		}
+	}
+	for (int i = 0; i < NENV; i++) {
+		if (sent[i] && sent[i] != env->env_id) {
+			ipc_send(sent[i], val, srcva, perm);
 		}
 	}
 }
