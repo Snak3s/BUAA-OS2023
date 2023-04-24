@@ -32,9 +32,6 @@ struct Env {
 	u_int env_ipc_dstva;   // va at which to map received page
 	u_int env_ipc_perm;    // perm of page mapping received
 
-	// for lab 4-1 extra
-	u_int env_ipc_broadcast;
-
 	// Lab 4 fault handling
 	u_int env_user_tlb_mod_entry; // user tlb mod handler
 
