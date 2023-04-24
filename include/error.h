@@ -56,3 +56,7 @@
 	} while (0)
 
 #endif // _ERROR_H_
+
+// for lab 4-1 exam
+
+#define E_IPC_NOT_GROUP 14
