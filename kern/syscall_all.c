@@ -424,11 +424,18 @@ int sys_ipc_try_send(u_int envid, u_int value, u_int srcva, u_int perm) {
 		return -E_IPC_NOT_RECV;
 	}
 
+	u_int broadcast = perm & IPC_BROADCAST;
+	perm &= ~IPC_BROADCAST;
+	if (srcva != 0) {
+		broadcast |= IPC_PAGE_SENT;
+	}
+
 	/* Step 4: Set the target's ipc fields. */
 	e->env_ipc_value = value;
 	e->env_ipc_from = curenv->env_id;
 	e->env_ipc_perm = PTE_V | perm;
 	e->env_ipc_recving = 0;
+	e->env_ipc_broadcast = broadcast;
 
 	/* Step 5: Set the target's status to 'ENV_RUNNABLE' again and insert it to the tail of
 	 * 'env_sched_list'. */

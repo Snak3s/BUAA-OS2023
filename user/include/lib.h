@@ -138,3 +138,7 @@ int sync(void);
 #define O_MKDIR 0x0800 /* create directory, not regular file */
 
 #endif
+
+// for lab 4-1 extra
+
+void ipc_broadcast(u_int val, void *srcva, u_int perm);
