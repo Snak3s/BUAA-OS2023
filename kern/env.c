@@ -274,6 +274,9 @@ int env_alloc(struct Env **new, u_int parent_id) {
 	}
 	e->env_parent_id = parent_id;
 
+	// for lab 4-1 exam
+	e->env_gid = 0;
+
 	/* Step 4: Initialize the sp and 'cp0_status' in 'e->env_tf'. */
 	// Timer interrupt (STATUS_IM4) will be enabled.
 	e->env_tf.cp0_status = STATUS_IM4 | STATUS_KUp | STATUS_IEp;
