@@ -38,11 +38,14 @@ struct Env {
 	// Lab 6 scheduler counts
 	u_int env_runs; // number of times been env_run'ed
 };
-
 LIST_HEAD(Env_list, Env);
 TAILQ_HEAD(Env_sched_list, Env);
 extern struct Env *curenv;		     // the current env
 extern struct Env_sched_list env_sched_list; // runnable env list
+
+extern u_int env_barrier_cnt;
+extern u_int env_barrier_blocked_cnt;
+extern u_int env_barrier_blocked[128];
 
 void env_init(void);
 int env_alloc(struct Env **e, u_int parent_id);

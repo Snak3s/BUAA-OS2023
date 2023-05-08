@@ -507,6 +507,40 @@ int sys_read_dev(u_int va, u_int pa, u_int len) {
 	return 0;
 }
 
+// for lab 4-2 exam
+
+int sys_barrier_alloc(int n) {
+	env_barrier_cnt = n;
+	env_barrier_blocked_cnt = 0;
+	return 0;
+}
+
+int sys_barrier_wait(void) {
+	struct Env *env;
+
+	if (env_barrier_cnt == 0) {
+		return 0;
+	}
+	
+	env_barrier_blocked_cnt++;
+	if (env_barrier_blocked_cnt == env_barrier_cnt) {
+		struct Env *blocked_env;
+		for (int i = 0; i < env_barrier_cnt - 1; i++) {
+			try(envid2env(env_barrier_blocked[i], &blocked_env, 0));
+			blocked_env->env_status = ENV_RUNNABLE;
+			TAILQ_INSERT_TAIL(&env_sched_list, (blocked_env), env_sched_link);
+		}
+		env_barrier_cnt = 0;
+		return 0;
+	}
+	env_barrier_blocked[env_barrier_blocked_cnt - 1] = curenv->env_id;
+	curenv->env_status = ENV_NOT_RUNNABLE;
+	TAILQ_REMOVE(&env_sched_list, (curenv), env_sched_link);
+
+	((struct Trapframe *)KSTACKTOP - 1)->regs[2] = 0;
+	schedule(1);
+}
+
 void *syscall_table[MAX_SYSNO] = {
     [SYS_putchar] = sys_putchar,
     [SYS_print_cons] = sys_print_cons,
@@ -526,6 +560,8 @@ void *syscall_table[MAX_SYSNO] = {
     [SYS_cgetc] = sys_cgetc,
     [SYS_write_dev] = sys_write_dev,
     [SYS_read_dev] = sys_read_dev,
+    [SYS_barrier_alloc] = sys_barrier_alloc,
+    [SYS_barrier_wait] = sys_barrier_wait,
 };
 
 /* Overview:
