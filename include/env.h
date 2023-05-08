@@ -55,7 +55,7 @@ struct Sem {
 	u_int sem_checkperm;
 };
 
-extern struct Sem sems[128];
+extern struct Sem sems[10];
 
 LIST_HEAD(Env_list, Env);
 void env_init(void);
