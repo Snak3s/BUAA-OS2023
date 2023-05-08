@@ -56,3 +56,7 @@
 	} while (0)
 
 #endif // _ERROR_H_
+
+// for lab 4-2 extra
+
+#define E_NO_SEM 14

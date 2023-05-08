@@ -507,6 +507,96 @@ int sys_read_dev(u_int va, u_int pa, u_int len) {
 	return 0;
 }
 
+// for lab 4-2 extra
+
+int sys_sem_init(const char *name, int init_value, int checkperm) {
+	for (int i = 0; i < 128; i++) {
+		if (sems[i].sem_used) {
+			continue;
+		}
+		sems[i].sem_used = 1;
+		sems[i].sem_value = init_value;
+		sems[i].sem_owner = curenv->env_id;
+		sems[i].sem_blocked_cnt = 0;
+		sems[i].sem_checkperm = checkperm;
+		strcpy(sems[i].sem_name, name);
+		return i;
+	}
+	return -E_NO_SEM;
+}
+
+int sem_check_perm(struct Sem *sem) {
+	if (!sem->sem_used) {
+		return -E_NO_SEM;
+	}
+	if (curenv == NULL) {
+		return -E_NO_SEM;
+	}
+	if (sem->sem_checkperm == 0) {
+		return 0;
+	}
+	int curid = curenv->env_id;
+	while (curid && curid != sem->sem_owner) {
+		struct Env *env;
+		int r;
+		r = envid2env(curid, &env, 1);
+		if (r < 0) {
+			return -E_NO_SEM;
+		}
+		curid = env->env_parent_id;
+	}
+	if (curid != sem->sem_owner) {
+		return -E_NO_SEM;
+	}
+	return 0;
+}
+
+int sys_sem_wait(int sem_id) {
+	struct Sem *sem = &sems[sem_id];
+	try(sem_check_perm(sem));
+	if (sem->sem_value > 0) {
+		sem->sem_value--;
+		return 0;
+	}
+	sem->sem_blocked[sem->sem_blocked_cnt++] = curenv->env_id;
+	curenv->env_status = ENV_NOT_RUNNABLE;
+	TAILQ_REMOVE(&env_sched_list, (curenv), env_sched_link);
+	((struct Trapframe *)KSTACKTOP - 1)->regs[2] = 0;
+	schedule(1);
+}
+
+int sys_sem_post(int sem_id) {
+	struct Sem *sem = &sems[sem_id];
+	try(sem_check_perm(sem));
+	if (sem->sem_blocked_cnt > 0) {
+		sem->sem_blocked_cnt--;
+		struct Env *blocked_env;
+		try(envid2env(sem->sem_blocked[sem->sem_blocked_cnt], &blocked_env, 0));
+		blocked_env->env_status = ENV_RUNNABLE;
+		TAILQ_INSERT_TAIL(&env_sched_list, (blocked_env), env_sched_link);
+		return 0;
+	}
+	sem->sem_value++;
+	return 0;
+}
+
+int sys_sem_getvalue(int sem_id) {
+	struct Sem *sem = &sems[sem_id];
+	try(sem_check_perm(sem));
+	return sem->sem_value;
+}
+
+int sys_sem_getid(const char *name) {
+	for (int i = 0; i < 128; i++) {
+		if (strcmp(name, sems[i].sem_name) != 0) {
+			continue;
+		}
+		try(sem_check_perm(&sems[i]));
+		return i;
+	}
+	return -E_NO_SEM;
+}
+
 void *syscall_table[MAX_SYSNO] = {
     [SYS_putchar] = sys_putchar,
     [SYS_print_cons] = sys_print_cons,
@@ -526,6 +616,11 @@ void *syscall_table[MAX_SYSNO] = {
     [SYS_cgetc] = sys_cgetc,
     [SYS_write_dev] = sys_write_dev,
     [SYS_read_dev] = sys_read_dev,
+    [SYS_sem_init] = sys_sem_init,
+    [SYS_sem_wait] = sys_sem_wait,
+    [SYS_sem_post] = sys_sem_post,
+    [SYS_sem_getvalue] = sys_sem_getvalue,
+    [SYS_sem_getid] = sys_sem_getid,
 };
 
 /* Overview:

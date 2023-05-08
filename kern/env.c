@@ -22,6 +22,9 @@ static Pde *base_pgdir;
 
 static uint32_t asid_bitmap[NASID / 32] = {0}; // 64
 
+// for lab 4-2 extra
+struct Sem sems[128];
+
 /* Overview:
  *  Allocate an unused ASID.
  *
