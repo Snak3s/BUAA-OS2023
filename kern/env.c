@@ -22,6 +22,11 @@ static Pde *base_pgdir;
 
 static uint32_t asid_bitmap[NASID / 32] = {0}; // 64
 
+// for lab 4-2 exam
+u_int env_barrier_cnt;
+u_int env_barrier_blocked_cnt;
+u_int env_barrier_blocked[128];
+
 /* Overview:
  *  Allocate an unused ASID.
  *
