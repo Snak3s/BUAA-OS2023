@@ -39,11 +39,25 @@ struct Env {
 	u_int env_runs; // number of times been env_run'ed
 };
 
-LIST_HEAD(Env_list, Env);
 TAILQ_HEAD(Env_sched_list, Env);
 extern struct Env *curenv;		     // the current env
 extern struct Env_sched_list env_sched_list; // runnable env list
 
+// for lab 4-2 extra
+
+struct Sem {
+	u_int sem_used;
+	u_int sem_value;
+	char sem_name[64];
+	u_int sem_blocked_cnt;
+	u_int sem_blocked[64];
+	u_int sem_owner;
+	u_int sem_checkperm;
+};
+
+extern struct Sem sems[128];
+
+LIST_HEAD(Env_list, Env);
 void env_init(void);
 int env_alloc(struct Env **e, u_int parent_id);
 void env_free(struct Env *);
