@@ -510,7 +510,7 @@ int sys_read_dev(u_int va, u_int pa, u_int len) {
 // for lab 4-2 extra
 
 int sys_sem_init(const char *name, int init_value, int checkperm) {
-	for (int i = 0; i < 128; i++) {
+	for (int i = 0; i < 10; i++) {
 		if (sems[i].sem_used) {
 			continue;
 		}
@@ -525,7 +525,11 @@ int sys_sem_init(const char *name, int init_value, int checkperm) {
 	return -E_NO_SEM;
 }
 
-int sem_check_perm(struct Sem *sem) {
+int sem_check_perm(int sem_id) {
+	if (sem_id < 0 || sem_id > 9) {
+		return -E_NO_SEM;
+	}
+	struct Sem *sem = &sems[sem_id];
 	if (!sem->sem_used) {
 		return -E_NO_SEM;
 	}
@@ -552,8 +556,8 @@ int sem_check_perm(struct Sem *sem) {
 }
 
 int sys_sem_wait(int sem_id) {
+	try(sem_check_perm(sem_id));
 	struct Sem *sem = &sems[sem_id];
-	try(sem_check_perm(sem));
 	if (sem->sem_value > 0) {
 		sem->sem_value--;
 		return 0;
@@ -566,8 +570,8 @@ int sys_sem_wait(int sem_id) {
 }
 
 int sys_sem_post(int sem_id) {
+	try(sem_check_perm(sem_id));
 	struct Sem *sem = &sems[sem_id];
-	try(sem_check_perm(sem));
 	if (sem->sem_blocked_cnt > 0) {
 		sem->sem_blocked_cnt--;
 		struct Env *blocked_env;
@@ -581,17 +585,17 @@ int sys_sem_post(int sem_id) {
 }
 
 int sys_sem_getvalue(int sem_id) {
+	try(sem_check_perm(sem_id));
 	struct Sem *sem = &sems[sem_id];
-	try(sem_check_perm(sem));
 	return sem->sem_value;
 }
 
 int sys_sem_getid(const char *name) {
-	for (int i = 0; i < 128; i++) {
+	for (int i = 0; i < 10; i++) {
 		if (strcmp(name, sems[i].sem_name) != 0) {
 			continue;
 		}
-		try(sem_check_perm(&sems[i]));
+		try(sem_check_perm(i));
 		return i;
 	}
 	return -E_NO_SEM;
