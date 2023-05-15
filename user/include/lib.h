@@ -73,6 +73,10 @@ int syscall_read_dev(void *, u_int, u_int);
 void ipc_send(u_int whom, u_int val, const void *srcva, u_int perm);
 u_int ipc_recv(u_int *whom, void *dstva, u_int *perm);
 
+// for lab 5-1 exam
+u_int get_time(u_int *us);
+void usleep(u_int us);
+
 // wait.c
 void wait(u_int envid);
 
