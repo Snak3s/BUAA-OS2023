@@ -76,3 +76,84 @@ void ide_write(u_int diskno, u_int secno, void *src, u_int nsecs) {
 		panic_on(temp == 0);
 	}
 }
+
+#define NSSD 32
+#define SSD_W 1
+#define SSD_UW 0
+
+int ssd_map[NSSD];
+int ssd_bitmap[NSSD];
+int ssd_erase_cnt[NSSD];
+
+void ssd_init() {
+	for (int i = 0; i < NSSD; i++) {
+		ssd_map[i] = -1;
+		ssd_bitmap[i] = SSD_W;
+		ssd_erase_cnt[i] = 0;
+	}
+}
+
+int ssd_read(u_int logic_no, void *dst) {
+	if (ssd_map[logic_no] == -1) {
+		return -1;
+	}
+	ide_read(0, ssd_map[logic_no], dst, 1);
+	return 0;
+}
+
+void ssd_write(u_int logic_no, void *src) {
+	static char zero[BY2SECT];
+	if (ssd_map[logic_no] != -1) {
+		ide_write(0, ssd_map[logic_no], zero, 1);
+		ssd_bitmap[ssd_map[logic_no]] = SSD_W;
+		ssd_erase_cnt[ssd_map[logic_no]]++;
+		ssd_map[logic_no] = -1;
+	}
+	int sec_no = -1;
+	for (int i = 0; i < NSSD; i++) {
+		if (ssd_bitmap[i] == SSD_UW) {
+			continue;
+		}
+		if (sec_no == -1 || ssd_erase_cnt[i] < ssd_erase_cnt[sec_no]) {
+			sec_no = i;
+		}
+	}
+	if (ssd_erase_cnt[sec_no] >= 5) {
+		int uw_sec_no = -1;
+		for (int i = 0; i < NSSD; i++) {
+			if (ssd_bitmap[i] == SSD_W) {
+				continue;
+			}
+			if (uw_sec_no == -1 || ssd_erase_cnt[i] < ssd_erase_cnt[uw_sec_no]) {
+				uw_sec_no = i;
+			}
+		}
+		static char buf[BY2SECT];
+		ide_read(0, uw_sec_no, buf, 1);
+		ide_write(0, sec_no, buf, 1);
+		ssd_bitmap[sec_no] = SSD_UW;
+		ssd_bitmap[uw_sec_no] = SSD_W;
+		ide_write(0, uw_sec_no, zero, 1);
+		ssd_erase_cnt[uw_sec_no]++;
+		for (int i = 0; i < NSSD; i++) {
+			if (ssd_map[i] == uw_sec_no) {
+				ssd_map[i] = sec_no;
+			}
+		}
+		sec_no = uw_sec_no;
+	}
+	ssd_map[logic_no] = sec_no;
+	ide_write(0, sec_no, src, 1);
+	ssd_bitmap[ssd_map[logic_no]] = SSD_UW;
+}
+
+void ssd_erase(u_int logic_no) {
+	static char zero[BY2SECT];
+	if (ssd_map[logic_no] == -1) {
+		return;
+	}
+	ide_write(0, ssd_map[logic_no], zero, 1);
+	ssd_erase_cnt[ssd_map[logic_no]]++;
+	ssd_bitmap[ssd_map[logic_no]] = SSD_W;
+	ssd_map[logic_no] = -1;
+}
