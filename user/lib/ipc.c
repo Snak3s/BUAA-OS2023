@@ -37,3 +37,32 @@ u_int ipc_recv(u_int *whom, void *dstva, u_int *perm) {
 
 	return env->env_ipc_value;
 }
+
+// for lab 5-1 exam
+
+#define DEV_RTC_ADDRESS 0x15000000
+
+#define DEV_RTC_TRIGGER_READ 0x0000
+#define DEV_RTC_SEC 0x0010
+#define DEV_RTC_USEC 0x0020
+
+u_int get_time(u_int *us) {
+	u_int s = 0;
+	syscall_write_dev(&s, DEV_RTC_ADDRESS + DEV_RTC_TRIGGER_READ, 4);
+	syscall_read_dev(&s, DEV_RTC_ADDRESS + DEV_RTC_SEC, 4);
+	syscall_read_dev(us, DEV_RTC_ADDRESS + DEV_RTC_USEC, 4);
+	return s;
+}
+
+void usleep(u_int us) {
+	u_int start, end;
+	get_time(&start);
+	while (1) {
+		get_time(&end);
+		if (end - start >= us) {
+			break;
+		} else {
+			syscall_yield();
+		}
+	}
+}
