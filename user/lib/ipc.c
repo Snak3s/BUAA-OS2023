@@ -55,11 +55,12 @@ u_int get_time(u_int *us) {
 }
 
 void usleep(u_int us) {
-	u_int start, end;
-	get_time(&start);
+	u_int start, start_us;
+	u_int end, end_us;
+	start = get_time(&start_us);
 	while (1) {
-		get_time(&end);
-		if (end - start >= us) {
+		end = get_time(&end_us);
+		if ((end - start) * 1000000 + end_us - start_us >= us) {
 			break;
 		} else {
 			syscall_yield();
