@@ -3,6 +3,7 @@
 #include <mmu.h>
 #include <syscall.h>
 #include <trap.h>
+#include <signal.h>
 
 void syscall_putchar(int ch) {
 	msyscall(SYS_putchar, ch);
@@ -73,4 +74,24 @@ int syscall_write_dev(void *va, u_int dev, u_int len) {
 int syscall_read_dev(void *va, u_int dev, u_int len) {
 	/* Exercise 5.2: Your code here. (2/2) */
 	return msyscall(SYS_read_dev, va, dev, len);
+}
+
+int syscall_set_signal_entry(void (*func)(int, struct Trapframe *)) {
+	return msyscall(SYS_set_signal_entry, func);
+}
+
+int syscall_sigaction(int signum, const sigaction_t *act, sigaction_t *oldact) {
+	return msyscall(SYS_sigaction, signum, act, oldact);
+}
+
+int syscall_sigprocmask(int how, const sigset_t *set, sigset_t *oldset) {
+	return msyscall(SYS_sigprocmask, how, set, oldset);
+}
+
+int syscall_kill(u_int envid, int sig) {
+	return msyscall(SYS_kill, envid, sig);
+}
+
+int syscall_sigreturn(int signum) {
+	return msyscall(SYS_sigreturn, signum);
 }

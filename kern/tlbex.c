@@ -1,5 +1,6 @@
 #include <env.h>
 #include <pmap.h>
+#include <signal.h>
 
 static void passive_alloc(u_int va, Pde *pgdir, u_int asid) {
 	struct Page *p = NULL;
@@ -42,6 +43,11 @@ Pte _do_tlb_refill(u_long va, u_int asid) {
 	 */
 
 	/* Exercise 2.9: Your code here. */
+	if (va < UTEMP) {
+		signal_kill((void *)curenv, SIGSEGV);
+		return 0;
+	}
+	
 	while (page_lookup(cur_pgdir, va, &pte) == NULL)
 		passive_alloc(va, cur_pgdir, asid);
 

@@ -7,6 +7,7 @@
 #include <printk.h>
 #include <sched.h>
 #include <syscall.h>
+#include <signal.h>
 
 extern struct Env *curenv;
 
@@ -276,6 +277,13 @@ int sys_exofork(void) {
 	e->env_status = ENV_NOT_RUNNABLE;
 	e->env_pri = curenv->env_pri;
 
+	memcpy(e->env_sig_action, curenv->env_sig_action, sizeof(e->env_sig_action));
+	e->env_sig_procmask = curenv->env_sig_procmask;
+	e->env_sig_handling = curenv->env_sig_handling;
+	e->env_sig_pending = curenv->env_sig_pending;
+	memcpy(e->env_sig_queue, curenv->env_sig_queue, sizeof(e->env_sig_queue));
+	e->env_signal_entry = curenv->env_signal_entry;
+
 	return e->env_id;
 }
 
@@ -531,6 +539,52 @@ int sys_read_dev(u_int va, u_int pa, u_int len) {
 	return 0;
 }
 
+// signal syscalls
+
+int sys_set_signal_entry(u_int func) {
+	curenv->env_signal_entry = func;
+	return 0;
+}
+
+int sys_sigaction(int signum, const sigaction_t *act, sigaction_t *oldact) {
+	if (is_illegal_signum(signum)) {
+		return -1;
+	}
+	if (oldact != NULL) {
+		*oldact = curenv->env_sig_action[signum - 1];
+	}
+	curenv->env_sig_action[signum - 1] = *act;
+	return 0;
+}
+
+int sys_sigprocmask(int how, const sigset_t *set, sigset_t *oldset) {
+	if (oldset != NULL) {
+		*oldset = curenv->env_sig_procmask;
+	}
+	if (how == SIG_BLOCK) {
+		sigmergeset(&curenv->env_sig_procmask, set);
+	} else if (how == SIG_UNBLOCK) {
+		sigdiffset(&curenv->env_sig_procmask, set);
+	} else if (how == SIG_SETMASK) {
+		curenv->env_sig_procmask = *set;
+	}
+	return 0;
+}
+
+int sys_kill(u_int envid, int sig) {
+	struct Env *env;
+	if (is_illegal_signum(sig)) {
+		return -1;
+	}
+	try(envid2env(envid, &env, 0));
+	return signal_kill((void *)env, sig);
+}
+
+int sys_sigreturn(int signum) {
+	try(signal_return((void *)curenv, signum));
+	return 0;
+}
+
 void *syscall_table[MAX_SYSNO] = {
     [SYS_putchar] = sys_putchar,
     [SYS_print_cons] = sys_print_cons,
@@ -550,6 +604,11 @@ void *syscall_table[MAX_SYSNO] = {
     [SYS_cgetc] = sys_cgetc,
     [SYS_write_dev] = sys_write_dev,
     [SYS_read_dev] = sys_read_dev,
+    [SYS_set_signal_entry] = sys_set_signal_entry,
+    [SYS_sigaction] = sys_sigaction,
+    [SYS_sigprocmask] = sys_sigprocmask,
+    [SYS_kill] = sys_kill,
+    [SYS_sigreturn] = sys_sigreturn,
 };
 
 /* Overview:

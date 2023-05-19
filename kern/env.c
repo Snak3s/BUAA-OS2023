@@ -5,6 +5,7 @@
 #include <pmap.h>
 #include <printk.h>
 #include <sched.h>
+#include <signal.h>
 
 // The maximum number of available ASIDs.
 // Our bitmap requires this to be a multiple of 32.
@@ -279,6 +280,14 @@ int env_alloc(struct Env **new, u_int parent_id) {
 	e->env_tf.cp0_status = STATUS_IM4 | STATUS_KUp | STATUS_IEp;
 	// Keep space for 'argc' and 'argv'.
 	e->env_tf.regs[29] = USTACKTOP - sizeof(int) - sizeof(char **);
+
+	// for signal
+	memset(e->env_sig_action, 0, sizeof(e->env_sig_action));
+	sigemptyset(&e->env_sig_procmask);
+	sigemptyset(&e->env_sig_handling);
+	sigemptyset(&e->env_sig_pending);
+	memset(e->env_sig_queue, 0, sizeof(e->env_sig_queue));
+	e->env_signal_entry = 0;
 
 	/* Step 5: Remove the new Env from env_free_list. */
 	/* Exercise 3.4: Your code here. (4/4) */
