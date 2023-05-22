@@ -261,3 +261,38 @@ int remove(const char *path) {
 int sync(void) {
 	return fsipc_sync();
 }
+
+// for lab 5-2 exam
+int openat(int dirfd, const char *path, int mode) {
+	int r;
+	
+	struct Fd *fd;
+	if ((r = fd_lookup(dirfd, &fd)) < 0) {
+		return r;
+	}
+	
+	struct Filefd *ffd;
+	ffd = (struct Filefd *)fd;
+	u_int size, fileid;
+	fileid = ffd->f_fileid;
+
+	if ((r = fd_alloc(&fd)) < 0) {
+		return r;
+	}
+	
+	if ((r = fsipc_openat(fileid, path, mode, fd)) < 0) {
+		return r;
+	}
+	
+	char *va;
+	va = fd2data(fd);
+	ffd = (struct Filefd *)fd;
+	size = ffd->f_file.f_size;
+	fileid = ffd->f_fileid;
+
+	for (int i = 0; i < size; i += BY2PG) {
+		fsipc_map(fileid, i, va + i);
+	}
+
+	return fd2num(fd);
+}
