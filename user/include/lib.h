@@ -100,6 +100,7 @@ int fsipc_dirty(u_int, u_int);
 int fsipc_remove(const char *);
 int fsipc_sync(void);
 int fsipc_incref(u_int);
+int fsipc_openat(u_int, const char *, u_int, struct Fd *);
 
 // fd.c
 int close(int fd);
@@ -111,6 +112,7 @@ int readn(int fd, void *buf, u_int nbytes);
 int dup(int oldfd, int newfd);
 int fstat(int fdnum, struct Stat *stat);
 int stat(const char *path, struct Stat *);
+int openat(int dirfd, const char *pah, int mode);
 
 // file.c
 int open(const char *path, int mode);

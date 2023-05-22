@@ -202,6 +202,44 @@ void serve_sync(u_int envid) {
 	ipc_send(envid, 0, 0, 0);
 }
 
+void serve_openat(u_int envid, struct Fsreq_openat *rq) {
+	struct File *f;
+	struct Filefd *ff;
+	int r;
+	struct Open *o;
+
+	// Find a file id.
+	if ((r = open_alloc(&o)) < 0) {
+		ipc_send(envid, r, 0, 0);
+	}
+
+	struct Open *pOpen;
+	if ((r = open_lookup(envid, rq->dir_fileid, &pOpen)) < 0) {
+		ipc_send(envid, r, 0, 0);
+		return;
+	}
+	struct File *dir = pOpen->o_file;
+
+	// Open the file.
+	if ((r = file_openat(dir, rq->req_path, &f)) < 0) {
+		ipc_send(envid, r, 0, 0);
+		return;
+	}
+
+	// Save the file pointer.
+	o->o_file = f;
+
+	// Fill out the Filefd structure
+	ff = (struct Filefd *)o->o_ff;
+	ff->f_file = *f;
+	ff->f_fileid = o->o_fileid;
+	o->o_mode = rq->req_omode;
+	ff->f_fd.fd_omode = o->o_mode;
+	ff->f_fd.fd_dev_id = devfile.dev_id;
+
+	ipc_send(envid, 0, o->o_ff, PTE_D | PTE_LIBRARY);
+}
+
 void serve(void) {
 	u_int req, whom, perm;
 
@@ -243,6 +281,10 @@ void serve(void) {
 
 		case FSREQ_SYNC:
 			serve_sync(whom);
+			break;
+		
+		case FSREQ_OPENAT:
+			serve_openat(whom, (struct Fsreq_openat *)REQVA);
 			break;
 
 		default:
