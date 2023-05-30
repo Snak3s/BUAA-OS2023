@@ -16,6 +16,7 @@ struct Trapframe {
 	unsigned long cp0_badvaddr;
 	unsigned long cp0_cause;
 	unsigned long cp0_epc;
+	unsigned long cp0_context;
 };
 
 void print_tf(struct Trapframe *tf);
@@ -70,8 +71,10 @@ void print_tf(struct Trapframe *tf);
 #define TF_BADVADDR ((TF_LO) + 4)
 #define TF_CAUSE ((TF_BADVADDR) + 4)
 #define TF_EPC ((TF_CAUSE) + 4)
+
+#define TF_CONTEXT ((TF_EPC) + 4)
 /*
  * Size of stack frame, word/double word alignment
  */
-#define TF_SIZE ((TF_EPC) + 4)
+#define TF_SIZE ((TF_CONTEXT) + 4)
 #endif /* _TRAP_H_ */

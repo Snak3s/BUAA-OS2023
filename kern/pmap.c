@@ -319,6 +319,9 @@ void page_remove(Pde *pgdir, u_int asid, u_long va) {
  */
 void tlb_invalidate(u_int asid, u_long va) {
 	tlb_out(PTE_ADDR(va) | (asid << 6));
+	if (UVPT <= va && va < ULIM) {
+		tlb_out(PTE_ADDR(va + ULIM) | (asid << 6));
+	}
 }
 
 void physical_memory_manage_check(void) {

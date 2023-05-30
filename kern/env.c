@@ -218,6 +218,7 @@ static int env_setup_vm(struct Env *e) {
 	/* Step 3: Map its own page table at 'UVPT' with readonly permission.
 	 * As a result, user programs can read its page table through 'UVPT' */
 	e->env_pgdir[PDX(UVPT)] = PADDR(e->env_pgdir) | PTE_V;
+	e->env_pgdir[PDX(ULIM + UVPT)] = PADDR(e->env_pgdir) | PTE_V;
 	return 0;
 }
 
