@@ -22,6 +22,8 @@
 	sw      k0, TF_EPC(sp)
 	mfc0    k0, CP0_BADVADDR
 	sw      k0, TF_BADVADDR(sp)
+	mfc0    k0, CP0_CONTEXT
+	sw      k0, TF_CONTEXT(sp)
 	mfhi    k0
 	sw      k0, TF_HI(sp)
 	mflo    k0

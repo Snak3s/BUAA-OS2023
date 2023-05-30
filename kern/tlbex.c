@@ -20,7 +20,7 @@ static void passive_alloc(u_int va, Pde *pgdir, u_int asid) {
 		panic("pages zone");
 	}
 
-	if (va >= ULIM) {
+	if (va >= ULIM && va < ULIM + UVPT) {
 		panic("kernel address");
 	}
 
