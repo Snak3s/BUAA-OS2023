@@ -46,6 +46,11 @@ struct Env {
 	sigset_t env_sig_pending;
 	u_int env_sig_queue[NSIG];
 	u_int env_signal_entry;
+
+	// alarm
+	u_int env_sig_alarm_start_sec;
+	u_int env_sig_alarm_start_usec;
+	u_int env_sig_alarm_seconds;
 };
 
 LIST_HEAD(Env_list, Env);

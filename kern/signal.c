@@ -1,3 +1,4 @@
+#include <drivers/dev_rtc.h>
 #include <env.h>
 #include <mmu.h>
 #include <pmap.h>
@@ -19,6 +20,15 @@ void sigdiffset(sigset_t *dst, const sigset_t *src) {
 			sigdelset(dst, i);
 		}
 	}
+}
+
+u_int gettime(u_int *usec) {
+	*(u_int *)(KSEG1 | DEV_RTC_ADDRESS | DEV_RTC_TRIGGER_READ) = 0;
+	u_int sec = *(u_int *)(KSEG1 | DEV_RTC_ADDRESS | DEV_RTC_SEC);
+	if (usec != NULL) {
+	       *usec = *(u_int *)(KSEG1 | DEV_RTC_ADDRESS | DEV_RTC_USEC);
+	}
+	return sec;
 }
 
 int signal_kill(void *e, int sig) {
@@ -43,13 +53,22 @@ int signal_kill(void *e, int sig) {
 
 int signal_pending(void *e) {
 	struct Env *env = e;
-	int sig_pri = NSIG + 1;
+	if (env->env_sig_alarm_seconds) {
+		u_int usec;
+		u_int sec = gettime(&usec);
+		u_int duration = (sec - env->env_sig_alarm_start_sec) - (usec >= env->env_sig_alarm_start_usec ? 0 : 1);
+		if (duration >= env->env_sig_alarm_seconds) {
+			env->env_sig_alarm_seconds = 0;
+			signal_kill(e, SIGALRM);
+		}
+	}
+	int sig_pri = 0;
 	int sig = 0;
 	sigset_t set = env->env_sig_procmask;
 	sigmergeset(&set, &env->env_sig_handling);
 	for (int i = 1; i <= NSIG; i++) {
 		if (sigismember(&env->env_sig_handling, i)) {
-			sigmergeset(&env->env_sig_procmask, &env->env_sig_action[i - 1].sa_mask);
+			sigmergeset(&set, &env->env_sig_action[i - 1].sa_mask);
 		}
 	}
 	sigdelset(&set, SIGKILL);
@@ -60,7 +79,7 @@ int signal_pending(void *e) {
 		if (sigismember(&set, i)) {
 			continue;
 		}
-		if (env->env_sig_queue[i - 1] < sig_pri) {
+		if (env->env_sig_queue[i - 1] > sig_pri) {
 			sig_pri = env->env_sig_queue[i - 1];
 			sig = i;
 		}
@@ -106,6 +125,9 @@ int signal_return(void *e, int sig) {
 void do_signal(struct Trapframe *tf) {
 	struct Trapframe tmp_tf;
 	int sig;
+	if (tf->cp0_epc >= ULIM) {
+		return;
+	}
 	tmp_tf = *tf;
 	sig = signal_pending((void *)curenv);
 	if (!sig) {

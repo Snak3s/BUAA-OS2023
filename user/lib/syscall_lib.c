@@ -95,3 +95,7 @@ int syscall_kill(u_int envid, int sig) {
 int syscall_sigreturn(int signum) {
 	return msyscall(SYS_sigreturn, signum);
 }
+
+u_int syscall_alarm(u_int seconds) {
+	return msyscall(SYS_alarm, seconds);
+}

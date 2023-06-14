@@ -1,6 +1,8 @@
 #ifndef SIGNAL_H
 #define SIGNAL_H
 
+#include <types.h>
+
 #define NSIG 64
 
 struct sigset_t {
@@ -20,6 +22,7 @@ typedef struct sigaction sigaction_t;
 
 #define SIGKILL 9
 #define SIGSEGV 11
+#define SIGALRM 14
 #define SIGTERM 15
 
 #define is_illegal_signum(signum) ((signum) <= 0 || (signum) > NSIG)
@@ -39,5 +42,7 @@ int signal_handle(void *e, int sig);
 int signal_return(void *e, int sig);
 
 void do_signal();
+
+u_int gettime(u_int *usec);
 
 #endif
