@@ -289,6 +289,11 @@ int env_alloc(struct Env **new, u_int parent_id) {
 	memset(e->env_sig_queue, 0, sizeof(e->env_sig_queue));
 	e->env_signal_entry = 0;
 
+	// for alarm
+	e->env_sig_alarm_start_sec = 0;
+	e->env_sig_alarm_start_usec = 0;
+	e->env_sig_alarm_seconds = 0;
+
 	/* Step 5: Remove the new Env from env_free_list. */
 	/* Exercise 3.4: Your code here. (4/4) */
 	LIST_REMOVE(e, env_link);
@@ -516,7 +521,8 @@ void env_run(struct Env *e) {
 	 *    returning to the kernel caller, making 'env_run' a 'noreturn' function as well.
 	 */
 	/* Exercise 3.8: Your code here. (2/2) */
-	env_pop_tf(&curenv->env_tf, curenv->env_asid);
+	*((struct Trapframe *)KSTACKTOP - 1) = curenv->env_tf;
+	env_pop_tf((struct Trapframe *)KSTACKTOP - 1, curenv->env_asid);
 }
 
 void env_check() {

@@ -284,6 +284,10 @@ int sys_exofork(void) {
 	memcpy(e->env_sig_queue, curenv->env_sig_queue, sizeof(e->env_sig_queue));
 	e->env_signal_entry = curenv->env_signal_entry;
 
+	e->env_sig_alarm_start_sec = curenv->env_sig_alarm_start_sec;
+	e->env_sig_alarm_start_usec = curenv->env_sig_alarm_start_usec;
+	e->env_sig_alarm_seconds = curenv->env_sig_alarm_seconds;
+
 	return e->env_id;
 }
 
@@ -585,6 +589,21 @@ int sys_sigreturn(int signum) {
 	return 0;
 }
 
+u_int sys_alarm(u_int seconds) {
+	u_int r = 0;
+	if (curenv->env_sig_alarm_seconds) {
+		u_int usec;
+		u_int sec = gettime(&usec);
+		u_int duration = (sec - curenv->env_sig_alarm_start_sec) - (usec >= curenv->env_sig_alarm_start_usec ? 0 : 1);
+		r = curenv->env_sig_alarm_seconds - duration;
+	}
+	if (seconds) {
+		curenv->env_sig_alarm_start_sec = gettime(&(curenv->env_sig_alarm_start_usec));
+		curenv->env_sig_alarm_seconds = seconds;
+	}
+	return r;
+}
+
 void *syscall_table[MAX_SYSNO] = {
     [SYS_putchar] = sys_putchar,
     [SYS_print_cons] = sys_print_cons,
@@ -609,6 +628,7 @@ void *syscall_table[MAX_SYSNO] = {
     [SYS_sigprocmask] = sys_sigprocmask,
     [SYS_kill] = sys_kill,
     [SYS_sigreturn] = sys_sigreturn,
+    [SYS_alarm] = sys_alarm,
 };
 
 /* Overview:

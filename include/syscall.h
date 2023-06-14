@@ -27,6 +27,7 @@ enum {
 	SYS_sigprocmask,
 	SYS_kill,
 	SYS_sigreturn,
+	SYS_alarm,
 	MAX_SYSNO,
 };
 

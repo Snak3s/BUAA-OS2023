@@ -23,6 +23,10 @@ int kill(u_int envid, int sig) {
 	return syscall_kill(envid, sig);
 }
 
+u_int alarm(u_int seconds) {
+	return syscall_alarm(seconds);
+}
+
 // callback entry
 
 void sig_handler_ignore(int signum) {}

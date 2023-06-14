@@ -75,11 +75,13 @@ int syscall_sigaction(int signum, const sigaction_t *act, sigaction_t *oldact);
 int syscall_sigprocmask(int how, const sigset_t *set, sigset_t *oldset);
 int syscall_kill(u_int envid, int sig);
 int syscall_sigreturn(int signum);
+u_int syscall_alarm(u_int seconds);
 
 // signal
 int sigaction(int signum, const struct sigaction *act, struct sigaction *oldact);
 int sigprocmask(int how, const sigset_t *set, sigset_t *oldset);
 int kill(u_int envid, int sig);
+u_int alarm(u_int seconds);
 
 void siginit();
 
