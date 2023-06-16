@@ -280,8 +280,9 @@ int sys_exofork(void) {
 	memcpy(e->env_sig_action, curenv->env_sig_action, sizeof(e->env_sig_action));
 	e->env_sig_procmask = curenv->env_sig_procmask;
 	e->env_sig_handling = curenv->env_sig_handling;
-	e->env_sig_pending = curenv->env_sig_pending;
+	memcpy(e->env_sig_cnt, curenv->env_sig_cnt, sizeof(e->env_sig_cnt));
 	memcpy(e->env_sig_queue, curenv->env_sig_queue, sizeof(e->env_sig_queue));
+	e->env_sig_queue_len = curenv->env_sig_queue_len;
 	e->env_signal_entry = curenv->env_signal_entry;
 
 	e->env_sig_alarm_start_sec = curenv->env_sig_alarm_start_sec;

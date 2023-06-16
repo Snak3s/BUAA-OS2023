@@ -43,8 +43,9 @@ struct Env {
 	sigaction_t env_sig_action[NSIG];
 	sigset_t env_sig_procmask;
 	sigset_t env_sig_handling;
-	sigset_t env_sig_pending;
+	u_int env_sig_cnt[NSIG];
 	u_int env_sig_queue[NSIG];
+	u_int env_sig_queue_len;
 	u_int env_signal_entry;
 
 	// alarm

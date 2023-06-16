@@ -36,18 +36,10 @@ int signal_kill(void *e, int sig) {
 	if (is_illegal_signum(sig)) {
 		return -E_NO_SIG;
 	}
-	if (sigismember(&env->env_sig_pending, sig)) {
-		return 0;
+	if (env->env_sig_queue_len >= NSIG) {
+		return -E_NO_SIG;
 	}
-	int sig_pri = 0;
-	for (int i = 0; i < NSIG; i++) {
-		if (env->env_sig_queue[i] > sig_pri) {
-			sig_pri = env->env_sig_queue[i];
-		}
-	}
-	sig_pri++;
-	env->env_sig_queue[sig - 1] = sig_pri;
-	sigaddset(&env->env_sig_pending, sig);
+	env->env_sig_queue[env->env_sig_queue_len++] = sig;
 	return 0;
 }
 
@@ -58,33 +50,29 @@ int signal_pending(void *e) {
 		u_int sec = gettime(&usec);
 		u_int duration = (sec - env->env_sig_alarm_start_sec) - (usec >= env->env_sig_alarm_start_usec ? 0 : 1);
 		if (duration >= env->env_sig_alarm_seconds) {
-			env->env_sig_alarm_seconds = 0;
-			signal_kill(e, SIGALRM);
+			int r = signal_kill(e, SIGALRM);
+			if (r == 0) {
+				env->env_sig_alarm_seconds = 0;
+			}
 		}
 	}
-	int sig_pri = 0;
-	int sig = 0;
+	if (env->env_sig_queue_len == 0) {
+		return 0;
+	}
 	sigset_t set = env->env_sig_procmask;
-	sigmergeset(&set, &env->env_sig_handling);
 	for (int i = 1; i <= NSIG; i++) {
 		if (sigismember(&env->env_sig_handling, i)) {
 			sigmergeset(&set, &env->env_sig_action[i - 1].sa_mask);
 		}
 	}
 	sigdelset(&set, SIGKILL);
-	for (int i = 1; i <= NSIG; i++) {
-		if (!sigismember(&env->env_sig_pending, i)) {
+	for (int i = env->env_sig_queue_len - 1; i >= 0; i--) {
+		if (sigismember(&set, env->env_sig_queue[i])) {
 			continue;
 		}
-		if (sigismember(&set, i)) {
-			continue;
-		}
-		if (env->env_sig_queue[i - 1] > sig_pri) {
-			sig_pri = env->env_sig_queue[i - 1];
-			sig = i;
-		}
+		return env->env_sig_queue[i];
 	}
-	return sig;
+	return 0;
 }
 
 int signal_handle(void *e, int sig) {
@@ -92,21 +80,22 @@ int signal_handle(void *e, int sig) {
 	if (is_illegal_signum(sig)) {
 		return -E_NO_SIG;
 	}
-	if (!sigismember(&env->env_sig_pending, sig)) {
+	int sig_pri = env->env_sig_queue_len - 1;
+	while (sig_pri >= 0 && env->env_sig_queue[sig_pri] != sig) {
+		sig_pri--;
+	}
+	if (sig_pri < 0) {
 		return -E_NO_SIG;
 	}
-	if (sigismember(&env->env_sig_handling, sig)) {
-		return -E_NO_SIG;
+	for (int i = sig_pri; i < NSIG - 1; i++) {
+		env->env_sig_queue[i] = env->env_sig_queue[i + 1];
 	}
-	sigaddset(&env->env_sig_handling, sig);
-	sigdelset(&env->env_sig_pending, sig);
-	int sig_pri = env->env_sig_queue[sig - 1];
-	env->env_sig_queue[sig - 1] = 0;
-	for (int i = 0; i < NSIG; i++) {
-		if (env->env_sig_queue[i] >= sig_pri) {
-			env->env_sig_queue[i]--;
-		}
+	env->env_sig_queue[NSIG - 1] = 0;
+	env->env_sig_queue_len--;
+	if (env->env_sig_cnt[sig - 1] == 0) {
+		sigaddset(&env->env_sig_handling, sig);
 	}
+	env->env_sig_cnt[sig - 1]++;
 	return 0;
 }
 
@@ -118,7 +107,10 @@ int signal_return(void *e, int sig) {
 	if (!sigismember(&env->env_sig_handling, sig)) {
 		return -E_NO_SIG;
 	}
-	sigdelset(&env->env_sig_handling, sig);
+	env->env_sig_cnt[sig - 1]--;
+	if (env->env_sig_cnt[sig - 1] == 0) {
+		sigdelset(&env->env_sig_handling, sig);
+	}
 	return 0;
 }
 
@@ -126,6 +118,9 @@ void do_signal(struct Trapframe *tf) {
 	struct Trapframe tmp_tf;
 	int sig;
 	if (tf->cp0_epc >= ULIM) {
+		return;
+	}
+	if (curenv->env_signal_entry == 0) {
 		return;
 	}
 	tmp_tf = *tf;
@@ -139,12 +134,8 @@ void do_signal(struct Trapframe *tf) {
 	}
 	tf->regs[29] -= sizeof(struct Trapframe);
 	*(struct Trapframe *)tf->regs[29] = tmp_tf;
-	if (curenv->env_signal_entry) {
-		tf->regs[4] = sig;
-		tf->regs[5] = tf->regs[29];
-		tf->regs[29] -= sizeof(tf->regs[4]) + sizeof(tf->regs[5]);
-		tf->cp0_epc = curenv->env_signal_entry;
-	} else {
-		panic("no signal handler registered");
-	}
+	tf->regs[4] = sig;
+	tf->regs[5] = tf->regs[29];
+	tf->regs[29] -= sizeof(tf->regs[4]) + sizeof(tf->regs[5]);
+	tf->cp0_epc = curenv->env_signal_entry;
 }
