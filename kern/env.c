@@ -285,8 +285,9 @@ int env_alloc(struct Env **new, u_int parent_id) {
 	memset(e->env_sig_action, 0, sizeof(e->env_sig_action));
 	sigemptyset(&e->env_sig_procmask);
 	sigemptyset(&e->env_sig_handling);
-	sigemptyset(&e->env_sig_pending);
+	memset(e->env_sig_cnt, 0, sizeof(e->env_sig_cnt));
 	memset(e->env_sig_queue, 0, sizeof(e->env_sig_queue));
+	e->env_sig_queue_len = 0;
 	e->env_signal_entry = 0;
 
 	// for alarm
